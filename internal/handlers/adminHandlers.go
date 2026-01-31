@@ -54,7 +54,7 @@ func UpdateAdmin(c *fiber.Ctx) error {
 	}
 
 	query := "UPDATE admins SET name_admin = $1, email_admin = $2, password_admin = $3 WHERE id = $4 "
-	res, err := database.DB.Exec(context.Background(), query, admin.Name, admin.Email, id)
+	res, err := database.DB.Exec(context.Background(), query, admin.Name, admin.Email, admin.Password, id)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Erro ao atualizar"})
 	}

@@ -6,6 +6,7 @@ import (
 	"github.com/gabrielmonteiro/graviton-api/database"
 	"github.com/gabrielmonteiro/graviton-api/internal/models"
 	"github.com/gofiber/fiber/v2"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func GetAdmins(c *fiber.Ctx) error {
@@ -35,13 +36,21 @@ func CreateAdmin(c *fiber.Ctx) error {
 		return c.Status(400).JSON(fiber.Map{"error": "Formato de dados inválido"})
 	}
 
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(admin.Password), 10)
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{"error": "Erro ao processar senha"})
+	}
+
+	admin.Password = string(hashedPassword)
+
 	query := "INSERT INTO admins (name_admin, email_admin, password_admin) VALUES ($1, $2, $3) RETURNING id"
 
-	err := database.DB.QueryRow(context.Background(), query, admin.Name, admin.Email, admin.Password).Scan(&admin.ID)
+	err = database.DB.QueryRow(context.Background(), query, admin.Name, admin.Email, admin.Password).Scan(&admin.ID)
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{"error": "Erro ao salvar no Supabase"})
 	}
 
+	admin.Password = ""
 	return c.Status(201).JSON(admin)
 }
 
@@ -51,6 +60,14 @@ func UpdateAdmin(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(admin); err != nil {
 		return c.Status(400).JSON(fiber.Map{"error": "JSON inválido"})
+	}
+
+	if admin.Password != "" {
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(admin.Password), 10)
+		if err != nil {
+			return c.Status(200).JSON(fiber.Map{"data": "Senha atualizada com sucesso"})
+		}
+		admin.Password = string(hashedPassword)
 	}
 
 	query := "UPDATE admins SET name_admin = $1, email_admin = $2, password_admin = $3 WHERE id = $4 "

@@ -6,13 +6,19 @@ import (
 	"github.com/gabrielmonteiro/graviton-api/database"
 	"github.com/gabrielmonteiro/graviton-api/internal/handlers"
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 )
 
 func main() {
 	database.Connect()
 	app := fiber.New()
 
-	// 1. Rota de Saúde (Health Check)
+	app.Use(cors.New(cors.Config{
+		AllowOrigins: "*",
+		AllowHeaders: "Origin, Content-Type, Accept",
+		AllowMethods: "Get, POST, PUT, DELETE",
+	}))
+
 	app.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{"status": "ok", "message": "Graviton API Online"})
 	})

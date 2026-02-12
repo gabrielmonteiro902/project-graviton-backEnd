@@ -5,6 +5,7 @@ import (
 
 	"github.com/gabrielmonteiro/graviton-api/database"
 	"github.com/gabrielmonteiro/graviton-api/internal/handlers"
+	"github.com/gabrielmonteiro/graviton-api/internal/middleware" // Certifique-se de que o caminho está correto
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 )
@@ -14,22 +15,25 @@ func main() {
 	app := fiber.New()
 
 	app.Use(cors.New(cors.Config{
-		AllowOrigins: "*",
-		AllowHeaders: "Origin, Content-Type, Accept",
-		AllowMethods: "Get, POST, PUT, DELETE",
+		AllowOrigins:     "http://localhost:5173",
+		AllowCredentials: true,
+		AllowHeaders:     "Origin, Content-Type, Accept",
 	}))
 
-	app.Get("/health", func(c *fiber.Ctx) error {
-		return c.JSON(fiber.Map{"status": "ok", "message": "Graviton API Online"})
-	})
-
 	v1 := app.Group("/v1")
-	adminGroup := v1.Group("/admins")
 
-	adminGroup.Get("/", handlers.GetAdmins)
-	adminGroup.Post("/", handlers.CreateAdmin)
-	adminGroup.Put("/:id", handlers.UpdateAdmin)
-	adminGroup.Delete("/:id", handlers.DeleteAdmin)
+	// --- ROTAS PÚBLICAS (Ninguém tem token ainda) ---
+	v1.Post("/login", handlers.Login)
+	v1.Post("/admins", handlers.CreateAdmin)
+
+	adminProtected := v1.Group("/admins", middleware.Protected())
+
+	v1.Get("/me", middleware.Protected(), handlers.GetMyProfile)
+
+	adminProtected.Get("/", handlers.GetAdmins)
+	adminProtected.Get("/:id", handlers.GetAdminByID)
+	adminProtected.Put("/:id", handlers.UpdateAdmin)
+	adminProtected.Delete("/:id", handlers.DeleteAdmin)
 
 	log.Fatal(app.Listen(":3000"))
 }

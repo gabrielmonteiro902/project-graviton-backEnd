@@ -28,8 +28,10 @@ Route::prefix('v1')->group(function () {
     Route::apiResource('tenants', TenantController::class);
 
     // -------------------------------------------------------------------------
-    // Autenticação (público — requer header X-Tenant-ID)
+    // Autenticação pública
     // -------------------------------------------------------------------------
+    Route::post('register', [AdminAuthController::class, 'register']);
+
     Route::middleware('tenant')->group(function () {
         Route::post('login', [AdminAuthController::class, 'login']);
     });

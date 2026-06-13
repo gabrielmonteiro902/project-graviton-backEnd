@@ -16,9 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
+        $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
+
         $middleware->alias([
             'auth.jwt' => \App\Http\Middleware\Authenticate::class,
-            'tenant' => \App\Http\Middleware\ResolveTenant::class,
+            'tenant'   => \App\Http\Middleware\ResolveTenant::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

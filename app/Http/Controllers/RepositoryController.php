@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Jobs\SyncGitHubRepositoryJob;
 use App\Models\Admin;
 use App\Models\Repository;
+use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -29,18 +31,38 @@ class RepositoryController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'github_owner' => 'required|string|max:255',
-            'github_repo'  => 'required|string|max:255',
+            'github_url' => 'required|url',
         ]);
 
-        $repository = Repository::create([
-            'tenant_id'    => $this->tenantId(),
-            'github_owner' => $data['github_owner'],
-            'github_repo'  => $data['github_repo'],
-            'status'       => 'active',
-        ]);
+        try {
+            $path = trim(parse_url($data['github_url'], PHP_URL_PATH), '/');
+            $parts = explode('/', $path);
 
-        return response()->json($repository, 201);
+            if (count($parts) < 2 || empty($parts[0]) || empty($parts[1])) {
+                return response()->json([
+                    'error' => 'URL inválida. Use o formato: https://github.com/owner/repo',
+                ], 422);
+            }
+
+            $repository = Repository::create([
+                'tenant_id'    => $this->tenantId(),
+                'github_owner' => $parts[0],
+                'github_repo'  => $parts[1],
+                'status'       => 'syncing',
+            ]);
+
+            SyncGitHubRepositoryJob::dispatch($repository);
+
+            return response()->json([
+                'message'    => 'Repositório registrado com sucesso. Sincronização iniciada.',
+                'repository' => $repository,
+            ], 201);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'error' => 'Falha ao processar solicitação: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function show(string $id): JsonResponse
@@ -59,7 +81,7 @@ class RepositoryController extends Controller
             ->firstOrFail();
 
         $data = $request->validate([
-            'status'         => 'sometimes|string|in:active,syncing,error',
+            'status' => 'sometimes|string|in:active,syncing,error',
             'last_synced_at' => 'sometimes|nullable|date',
         ]);
 

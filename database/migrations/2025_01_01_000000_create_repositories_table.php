@@ -7,6 +7,10 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
     public function up(): void
     {
+        if (Schema::hasTable('repositories')) {
+            return;
+        }
+
         Schema::create('repositories', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->string('tenant_id');

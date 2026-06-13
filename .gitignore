@@ -1,17 +1,14 @@
-# Environment variables
+/node_modules
+/public/hot
+/public/storage
+/storage/*.key
+/vendor
 .env
-
-# Binaries
-main
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-
-# Test binary
-*.test
-
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
-.env
+.env.backup
+.env.production
+.phpunit.result.cache
+docker-compose.override.yml
+Homestead.json
+Homestead.yaml
+/.idea
+/.vscode

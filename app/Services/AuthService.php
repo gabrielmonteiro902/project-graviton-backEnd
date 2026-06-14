@@ -39,17 +39,9 @@ class AuthService
         ];
     }
 
-    public function login(string $email, string $password, string $tenantId): array
+    public function login(string $email, string $password): array
     {
-        $tenant = Tenant::find($tenantId);
-
-        if (! $tenant) {
-            throw new RuntimeException('Tenant não encontrado', 404);
-        }
-
-        $admin = Admin::where('email_admin', $email)
-            ->where('tenant_id', $tenantId)
-            ->first();
+        $admin = Admin::where('email_admin', $email)->first();
 
         if (! $admin || ! Hash::check($password, $admin->password_admin)) {
             throw new RuntimeException('Credenciais inválidas', 401);
@@ -57,7 +49,7 @@ class AuthService
 
         return [
             'token'  => auth('admin')->login($admin),
-            'tenant' => $tenant,
+            'tenant' => $admin->tenant,
         ];
     }
 

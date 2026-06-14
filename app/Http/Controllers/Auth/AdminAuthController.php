@@ -46,14 +46,12 @@ class AdminAuthController extends Controller
         $request->validate([
             'email_admin'    => 'required|email',
             'password_admin' => 'required|string',
-            'tenant_id'      => 'required|string',
         ]);
 
         try {
             $result = $this->authService->login(
                 $request->email_admin,
                 $request->password_admin,
-                $request->tenant_id,
             );
         } catch (RuntimeException $e) {
             return response()->json(['message' => $e->getMessage()], $e->getCode());

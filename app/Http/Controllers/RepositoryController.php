@@ -96,8 +96,61 @@ class RepositoryController extends Controller
             ->where('tenant_id', $this->tenantId())
             ->firstOrFail();
 
+        if ($repository->status === 'syncing') {
+            return response()->json([
+                'error' => 'Não é possível excluir um repositório que está sendo sincronizado.',
+            ], 409);
+        }
+
+        $contributionsCount = $repository->contributions()->count();
         $repository->delete();
 
-        return response()->json(['message' => 'Repositório removido com sucesso']);
+        return response()->json([
+            'message'              => 'Repositório removido com sucesso.',
+            'deleted_contributions' => $contributionsCount,
+        ]);
+    }
+
+    public function destroyBulk(Request $request): JsonResponse
+    {
+        $data = $request->validate([
+            'ids'   => 'required|array|min:1',
+            'ids.*' => 'required|uuid',
+        ]);
+
+        $tenantId = $this->tenantId();
+
+        $repositories = Repository::whereIn('id', $data['ids'])
+            ->where('tenant_id', $tenantId)
+            ->get();
+
+        $syncingIds = $repositories->where('status', 'syncing')->pluck('id');
+
+        if ($syncingIds->isNotEmpty()) {
+            return response()->json([
+                'error'       => 'Alguns repositórios estão sendo sincronizados e não podem ser excluídos.',
+                'syncing_ids' => $syncingIds->values(),
+            ], 409);
+        }
+
+        $notFoundIds = collect($data['ids'])->diff($repositories->pluck('id'));
+        if ($notFoundIds->isNotEmpty()) {
+            return response()->json([
+                'error'          => 'Um ou mais repositórios não foram encontrados.',
+                'not_found_ids'  => $notFoundIds->values(),
+            ], 404);
+        }
+
+        $contributionsCount = 0;
+        foreach ($repositories as $repository) {
+            $contributionsCount += $repository->contributions()->count();
+            $repository->delete();
+        }
+
+        return response()->json([
+            'message'               => 'Repositórios removidos com sucesso.',
+            'deleted_repositories'  => $repositories->count(),
+            'deleted_contributions' => $contributionsCount,
+        ]);
     }
 }

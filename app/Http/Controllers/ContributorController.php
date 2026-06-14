@@ -26,7 +26,7 @@ class ContributorController extends Controller
             $query->where('hireable', true);
         }
 
-        $contributors = $query->orderBy('username')->get();
+        $contributors = $query->orderBy('username')->paginate(20);
 
         return response()->json($contributors);
     }

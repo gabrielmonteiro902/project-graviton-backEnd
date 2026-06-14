@@ -23,7 +23,7 @@ class RepositoryController extends Controller
     {
         $repositories = Repository::where('tenant_id', $this->tenantId())
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(15);
 
         return response()->json($repositories);
     }

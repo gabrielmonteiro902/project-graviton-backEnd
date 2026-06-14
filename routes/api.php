@@ -23,17 +23,14 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
 
-    // -------------------------------------------------------------------------
-    // Gestão de Tenants (stores/lojas)
-    // -------------------------------------------------------------------------
-    Route::apiResource('tenants', TenantController::class);
 
     // -------------------------------------------------------------------------
     // Autenticação pública
     // -------------------------------------------------------------------------
-    Route::post('register', [AdminAuthController::class, 'register']);
+    Route::post('register', [AdminAuthController::class, 'register'])
+        ->middleware('throttle:5,1');
 
-    Route::middleware('tenant')->group(function () {
+    Route::middleware(['tenant', 'throttle:10,1'])->group(function () {
         Route::post('login', [AdminAuthController::class, 'login']);
     });
 
@@ -57,6 +54,10 @@ Route::prefix('v1')->group(function () {
         Route::get('contributions', [ContributionController::class, 'index']);
         Route::post('contributions', [ContributionController::class, 'store']);
         Route::delete('contributions/{id}', [ContributionController::class, 'destroy']);
+
+        // Tenant do admin autenticado
+        Route::get('tenant', [TenantController::class, 'showOwn']);
+        Route::patch('tenant', [TenantController::class, 'updateOwn']);
 
         // Dois Corpos — conexões orbitais salvas
         Route::get('orbit-connections', [OrbitConnectionController::class, 'index']);

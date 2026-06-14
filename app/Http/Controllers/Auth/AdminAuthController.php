@@ -4,14 +4,15 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
-use App\Models\Tenant;
+use App\Services\AuthService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
+use RuntimeException;
 
 class AdminAuthController extends Controller
 {
+    public function __construct(private readonly AuthService $authService) {}
+
     public function register(Request $request): JsonResponse
     {
         $request->validate([
@@ -24,36 +25,18 @@ class AdminAuthController extends Controller
             'password_admin' => 'required|string|min:8',
         ]);
 
-        $result = DB::transaction(function () use ($request) {
-            $tenant = Tenant::create([
-                'id'    => $request->tenant_id,
-                'name'  => $request->tenant_name,
-                'email' => $request->tenant_email,
-                'plan'  => $request->plan ?? 'free',
-            ]);
-
-            $admin = Admin::create([
-                'name_admin'     => $request->name_admin,
-                'email_admin'    => $request->email_admin,
-                'password_admin' => Hash::make($request->password_admin),
-                'tenant_id'      => $tenant->id,
-            ]);
-
-            return ['tenant' => $tenant, 'admin' => $admin];
-        });
-
-        $token = auth('admin')->login($result['admin']);
+        $result = $this->authService->register($request->validated());
 
         return response()->json([
             'message'      => 'Conta criada com sucesso.',
-            'access_token' => $token,
+            'access_token' => $result['token'],
             'token_type'   => 'bearer',
             'expires_in'   => config('jwt.ttl') * 60,
             'tenant_id'    => $result['tenant']->id,
             'admin'        => [
-                'id'         => $result['admin']->id,
-                'name_admin' => $result['admin']->name_admin,
-                'email_admin'=> $result['admin']->email_admin,
+                'id'          => $result['admin']->id,
+                'name_admin'  => $result['admin']->name_admin,
+                'email_admin' => $result['admin']->email_admin,
             ],
         ], 201);
     }
@@ -66,33 +49,27 @@ class AdminAuthController extends Controller
             'tenant_id'      => 'required|string',
         ]);
 
-        $tenant = Tenant::find($request->tenant_id);
-
-        if (! $tenant) {
-            return response()->json(['message' => 'Tenant não encontrado'], 404);
+        try {
+            $result = $this->authService->login(
+                $request->email_admin,
+                $request->password_admin,
+                $request->tenant_id,
+            );
+        } catch (RuntimeException $e) {
+            return response()->json(['message' => $e->getMessage()], $e->getCode());
         }
-
-        $admin = Admin::where('email_admin', $request->email_admin)
-            ->where('tenant_id', $tenant->id)
-            ->first();
-
-        if (! $admin || ! Hash::check($request->password_admin, $admin->password_admin)) {
-            return response()->json(['message' => 'Credenciais inválidas'], 401);
-        }
-
-        $token = auth('admin')->login($admin);
 
         return response()->json([
-            'access_token' => $token,
+            'access_token' => $result['token'],
             'token_type'   => 'bearer',
             'expires_in'   => config('jwt.ttl') * 60,
-            'tenant_id'    => $tenant->id,
+            'tenant_id'    => $result['tenant']->id,
         ]);
     }
 
     public function logout(): JsonResponse
     {
-        auth('admin')->logout();
+        $this->authService->logout();
 
         return response()->json(['message' => 'Logout realizado com sucesso']);
     }
@@ -113,7 +90,7 @@ class AdminAuthController extends Controller
 
     public function refresh(): JsonResponse
     {
-        $token = auth('admin')->refresh();
+        $token = $this->authService->refresh();
 
         return response()->json([
             'access_token' => $token,

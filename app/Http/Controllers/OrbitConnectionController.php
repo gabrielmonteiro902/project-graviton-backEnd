@@ -23,7 +23,7 @@ class OrbitConnectionController extends Controller
         $connections = OrbitConnection::where('tenant_id', $this->tenantId())
             ->with(['primaryRepository', 'secondaryRepository'])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->paginate(15);
 
         return response()->json($connections);
     }

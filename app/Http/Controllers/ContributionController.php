@@ -31,29 +31,30 @@ class ContributionController extends Controller
 
         $totalCommits = $repository->contributions()->sum('commits_count');
 
-        $contributions = $repository->contributions()
+        $paginated = $repository->contributions()
             ->with('contributor:id,username,avatar_url,hireable,location,company')
             ->orderByDesc('commits_count')
-            ->get()
-            ->map(function (Contribution $contribution) use ($totalCommits) {
-                return [
-                    'id'             => $contribution->id,
-                    'contributor'    => $contribution->contributor,
-                    'commits_count'  => $contribution->commits_count,
-                    'additions'      => $contribution->additions,
-                    'deletions'      => $contribution->deletions,
-                    // G = C / T — força gravitacional para o Three.js
-                    'gravity'        => $totalCommits > 0
-                        ? round($contribution->commits_count / $totalCommits, 4)
-                        : 0.0,
-                    'updated_at'     => $contribution->updated_at,
-                ];
-            });
+            ->paginate(20);
+
+        $paginated->getCollection()->transform(function (Contribution $contribution) use ($totalCommits) {
+            return [
+                'id'            => $contribution->id,
+                'contributor'   => $contribution->contributor,
+                'commits_count' => $contribution->commits_count,
+                'additions'     => $contribution->additions,
+                'deletions'     => $contribution->deletions,
+                // G = C / T — força gravitacional para o Three.js
+                'gravity'       => $totalCommits > 0
+                    ? round($contribution->commits_count / $totalCommits, 4)
+                    : 0.0,
+                'updated_at'    => $contribution->updated_at,
+            ];
+        });
 
         return response()->json([
             'repository'    => $repository,
             'total_commits' => $totalCommits,
-            'contributions' => $contributions,
+            'contributions' => $paginated,
         ]);
     }
 

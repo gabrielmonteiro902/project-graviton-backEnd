@@ -21,7 +21,9 @@ class UpdateAdminRequest extends FormRequest
             'email_admin'    => [
                 'sometimes',
                 'email',
-                Rule::unique('admins', 'email_admin')->ignore($this->route('admin')),
+                Rule::unique('admins', 'email_admin')
+                    ->where('tenant_id', auth('admin')->user()->tenant_id)
+                    ->ignore($this->route('admin')),
             ],
             'password_admin' => 'sometimes|string|min:6',
         ];

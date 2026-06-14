@@ -22,7 +22,7 @@ class AdminController extends Controller
     {
         $admins = Admin::where('tenant_id', $this->tenantId())
             ->select('id', 'name_admin', 'email_admin', 'tenant_id', 'created_at')
-            ->get();
+            ->paginate(20);
 
         return response()->json($admins);
     }

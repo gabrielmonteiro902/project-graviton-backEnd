@@ -15,7 +15,7 @@ class AdminAuthController extends Controller
 
     public function register(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'tenant_id'      => 'required|string|alpha_dash|max:50|unique:tenants,id',
             'tenant_name'    => 'required|string|max:255',
             'tenant_email'   => 'required|email|unique:tenants,email',
@@ -25,7 +25,7 @@ class AdminAuthController extends Controller
             'password_admin' => 'required|string|min:8',
         ]);
 
-        $result = $this->authService->register($request->validated());
+        $result = $this->authService->register($validated);
 
         return response()->json([
             'message'      => 'Conta criada com sucesso.',

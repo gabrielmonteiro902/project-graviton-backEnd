@@ -1,6 +1,6 @@
 {
-    "name": "graviton/ecommerce-api",
-    "description": "Graviton E-commerce Multi-tenant API",
+    "name": "project-graviton/backend",
+    "description": "Graviton Multi-tenant API",
     "type": "project",
     "license": "MIT",
     "require": {

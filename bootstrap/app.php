@@ -18,6 +18,11 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->append(\Illuminate\Http\Middleware\HandleCors::class);
 
+        // O JWT viaja num cookie HttpOnly lido CRU pelo Authenticate. O grupo `api` não
+        // descriptografa cookies; sem esta exceção, o callback OAuth (grupo `web`)
+        // criptografaria o graviton_token e o /me leria lixo → 401.
+        $middleware->encryptCookies(except: ['graviton_token']);
+
         $middleware->alias([
             'auth.jwt' => \App\Http\Middleware\Authenticate::class,
             'tenant'   => \App\Http\Middleware\ResolveTenant::class,

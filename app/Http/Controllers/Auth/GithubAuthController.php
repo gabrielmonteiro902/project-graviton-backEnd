@@ -72,8 +72,10 @@ class GithubAuthController extends Controller
             // Mesma sessão do login por senha: JWT em cookie HttpOnly.
             $token = auth('admin')->login($admin);
 
-            // Importa os repositórios PÚBLICOS do usuário em background.
-            ImportGithubReposJob::dispatch($admin->id, $admin->tenant_id);
+            // Importa os repositórios PÚBLICOS do usuário sem travar o redirect.
+            // afterResponse: com QUEUE_CONNECTION=sync, roda DEPOIS de enviar a resposta,
+            // então o login redireciona na hora e a importação acontece logo em seguida.
+            ImportGithubReposJob::dispatchAfterResponse($admin->id, $admin->tenant_id);
 
             return redirect($frontend . '/auth/callback')
                 ->withCookie($this->tokenCookie($token));

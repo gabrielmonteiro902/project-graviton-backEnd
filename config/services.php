@@ -8,6 +8,7 @@ return [
         // OAuth App — login "Entrar com GitHub"
         'client_id'     => env('GITHUB_CLIENT_ID'),
         'client_secret' => env('GITHUB_CLIENT_SECRET'),
-        'redirect'      => env('GITHUB_REDIRECT_URI', env('APP_URL', 'http://localhost:8000') . '/auth/github/callback'),
+        // ?: para que uma linha GITHUB_REDIRECT_URI= vazia também caia no fallback do APP_URL.
+        'redirect'      => env('GITHUB_REDIRECT_URI') ?: rtrim(env('APP_URL', 'http://localhost:8000'), '/') . '/auth/github/callback',
     ],
 ];

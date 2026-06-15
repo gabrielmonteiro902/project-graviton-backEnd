@@ -33,7 +33,7 @@ class ContributionController extends Controller
         $totalCommits = $repository->contributions()->sum('commits_count');
 
         $paginated = $repository->contributions()
-            ->with('contributor:id,username,avatar_url,hireable,location,company')
+            ->with('contributor:id,github_id,username,avatar_url,hireable,location,company')
             ->orderByDesc('commits_count')
             ->paginate(20);
 

@@ -88,6 +88,7 @@ class AdminAuthController extends Controller
             'name_admin' => $admin->name_admin,
             'email_admin'=> $admin->email_admin,
             'tenant_id'  => $admin->tenant_id,
+            'github_id'  => $admin->github_id,
             'avatar_url' => $admin->avatar_url,
             'created_at' => $admin->created_at,
         ]);

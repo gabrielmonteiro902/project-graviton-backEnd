@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Http\Controllers\Concerns\IssuesTokenCookie;
 use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Services\AuthService;
@@ -11,8 +12,7 @@ use RuntimeException;
 
 class AdminAuthController extends Controller
 {
-    /** Nome do cookie HttpOnly que carrega o JWT. */
-    private const TOKEN_COOKIE = 'graviton_token';
+    use IssuesTokenCookie;
 
     public function __construct(private readonly AuthService $authService) {}
 
@@ -41,7 +41,7 @@ class AdminAuthController extends Controller
             ],
         ], 201);
 
-        return $this->withTokenCookie($response, $result['token']);
+        return $response->withCookie($this->tokenCookie($result['token']));
     }
 
     public function login(Request $request): JsonResponse
@@ -66,7 +66,7 @@ class AdminAuthController extends Controller
             'tenant_id'  => $result['tenant']->id,
         ]);
 
-        return $this->withTokenCookie($response, $result['token']);
+        return $response->withCookie($this->tokenCookie($result['token']));
     }
 
     public function logout(): JsonResponse
@@ -75,7 +75,7 @@ class AdminAuthController extends Controller
 
         $response = response()->json(['message' => 'Logout realizado com sucesso']);
 
-        return $this->forgetTokenCookie($response);
+        return $response->withCookie($this->forgetTokenCookie());
     }
 
     public function me(): JsonResponse
@@ -88,6 +88,7 @@ class AdminAuthController extends Controller
             'name_admin' => $admin->name_admin,
             'email_admin'=> $admin->email_admin,
             'tenant_id'  => $admin->tenant_id,
+            'avatar_url' => $admin->avatar_url,
             'created_at' => $admin->created_at,
         ]);
     }
@@ -101,33 +102,6 @@ class AdminAuthController extends Controller
             'expires_in' => config('jwt.ttl') * 60,
         ]);
 
-        return $this->withTokenCookie($response, $token);
-    }
-
-    /**
-     * Anexa o JWT num cookie HttpOnly — inacessível a JavaScript, o que mitiga
-     * roubo de token via XSS. O corpo da resposta NÃO contém o token de propósito:
-     * o frontend nunca precisa (nem deve) manipulá-lo.
-     */
-    private function withTokenCookie(JsonResponse $response, string $token): JsonResponse
-    {
-        return $response->withCookie(cookie(
-            name: self::TOKEN_COOKIE,
-            value: $token,
-            minutes: (int) config('jwt.ttl'),
-            path: '/',
-            domain: null,
-            secure: app()->environment('production'),
-            httpOnly: true,
-            raw: false,
-            // 'lax' cobre o dev (mesmo site, portas diferentes). Em produção com
-            // front e back em domínios distintos, troque para 'none' (exige HTTPS).
-            sameSite: 'lax',
-        ));
-    }
-
-    private function forgetTokenCookie(JsonResponse $response): JsonResponse
-    {
-        return $response->withCookie(cookie()->forget(self::TOKEN_COOKIE, '/'));
+        return $response->withCookie($this->tokenCookie($token));
     }
 }

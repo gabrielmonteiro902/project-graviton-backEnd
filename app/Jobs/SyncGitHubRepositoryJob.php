@@ -24,7 +24,7 @@ class SyncGitHubRepositoryJob implements ShouldQueue
 
     protected string $tenantId;
 
-    public function __construct(protected Repository $repository)
+    public function __construct(protected Repository $repository, protected ?string $token = null)
     {
         $this->tenantId = $repository->tenant_id;
     }
@@ -33,7 +33,8 @@ class SyncGitHubRepositoryJob implements ShouldQueue
     {
         $this->repository->update(['status' => 'syncing']);
 
-        $token   = config('services.github.token');
+        // Usa o token do usuário (login via GitHub) quando fornecido; senão o PAT compartilhado.
+        $token   = $this->token ?? config('services.github.token');
         $baseUrl = config('services.github.base_url');
         $owner   = $this->repository->github_owner;
         $repo    = $this->repository->github_repo;

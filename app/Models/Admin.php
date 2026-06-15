@@ -20,14 +20,24 @@ class Admin extends Authenticatable implements JWTSubject
         'email_admin',
         'password_admin',
         'tenant_id',
+        'github_id',
+        'avatar_url',
+        'github_token',
     ];
 
     protected $hidden = [
         'password_admin',
+        'github_token',
     ];
 
-    // JWT exige o campo "password" para o guard padrão
-    public function getAuthPassword(): string
+    protected $casts = [
+        // Token OAuth do GitHub criptografado em repouso (usa APP_KEY).
+        'github_token' => 'encrypted',
+        'github_id'    => 'integer',
+    ];
+
+    // JWT exige o campo "password" para o guard. Pode ser null em contas OAuth.
+    public function getAuthPassword(): ?string
     {
         return $this->password_admin;
     }

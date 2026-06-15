@@ -72,7 +72,8 @@ class ContributionGravityTest extends TestCase
         $data = $response->json();
         $this->assertEquals(100, $data['total_commits']);
 
-        $gravities = collect($data['contributions'])->pluck('gravity', 'contributor.username');
+        // /contributions pagina os resultados; os itens ficam em contributions.data
+        $gravities = collect($data['contributions']['data'])->pluck('gravity', 'contributor.username');
         $this->assertEquals(0.75, $gravities['dev-a']);
         $this->assertEquals(0.25, $gravities['dev-b']);
     }

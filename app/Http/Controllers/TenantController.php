@@ -28,10 +28,10 @@ class TenantController extends Controller
         $request->validate([
             'name'  => 'sometimes|string|max:255',
             'email' => 'sometimes|email|unique:tenants,email,' . $tenant->id,
-            'plan'  => 'sometimes|string|in:free,starter,pro,enterprise',
         ]);
 
-        $tenant->update($request->only(['name', 'email', 'plan']));
+        // 'plan' NÃO é alterável por aqui — upgrade/downgrade só via billing server-side.
+        $tenant->update($request->only(['name', 'email']));
 
         return response()->json([
             'id'         => $tenant->id,

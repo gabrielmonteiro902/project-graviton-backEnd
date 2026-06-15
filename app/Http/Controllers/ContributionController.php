@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Admin;
 use App\Models\Contribution;
+use App\Models\Contributor;
 use App\Models\Repository;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -68,8 +69,13 @@ class ContributionController extends Controller
             'deletions'      => 'nullable|integer|min:0',
         ]);
 
-        // Garante que repo e contributor pertencem ao mesmo tenant
+        // Garante que repo E contributor pertencem ao tenant (evita injeção cross-tenant).
+        // O `exists` da validação é global, por isso a checagem de tenant é feita aqui.
         Repository::where('id', $data['repository_id'])
+            ->where('tenant_id', $this->tenantId())
+            ->firstOrFail();
+
+        Contributor::where('id', $data['contributor_id'])
             ->where('tenant_id', $this->tenantId())
             ->firstOrFail();
 

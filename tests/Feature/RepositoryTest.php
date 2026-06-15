@@ -6,12 +6,16 @@ use App\Models\Admin;
 use App\Models\Tenant;
 use Tests\TestCase;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Queue;
 use PHPOpenSourceSaver\JWTAuth\Facades\JWTAuth;
 
 class RepositoryTest extends TestCase
 {
     private function actingAsAdmin(): array
     {
+        // Não dispara o job de sync real (que faria chamada HTTP ao GitHub) nos testes.
+        Queue::fake();
+
         $tenant = Tenant::create([
             'id' => 'repo-tenant',
             'name' => 'Repo Tenant',
@@ -41,7 +45,7 @@ class RepositoryTest extends TestCase
             ]);
 
         $response->assertStatus(201)
-            ->assertJsonStructure(['id', 'github_owner', 'github_repo', 'status']);
+            ->assertJsonStructure(['repository' => ['id', 'github_owner', 'github_repo', 'status']]);
     }
 
     public function test_can_list_repositories(): void
@@ -52,7 +56,7 @@ class RepositoryTest extends TestCase
             ->getJson('/api/v1/repositories');
 
         $response->assertStatus(200)
-            ->assertJsonIsArray();
+            ->assertJsonStructure(['data', 'current_page', 'total']);
     }
 
     public function test_cannot_create_duplicate_repository(): void

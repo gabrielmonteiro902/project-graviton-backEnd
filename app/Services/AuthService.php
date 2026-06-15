@@ -13,12 +13,15 @@ class AuthService
     public function register(array $data): array
     {
         $result = DB::transaction(function () use ($data) {
-            $tenant = Tenant::create([
+            // Novos tenants sempre iniciam em 'free'; upgrade só via billing.
+            // forceFill porque 'plan' foi removido de $fillable (anti mass-assignment).
+            $tenant = new Tenant();
+            $tenant->forceFill([
                 'id'    => $data['tenant_id'],
                 'name'  => $data['tenant_name'],
                 'email' => $data['tenant_email'],
-                'plan'  => $data['plan'] ?? 'free',
-            ]);
+                'plan'  => 'free',
+            ])->save();
 
             $admin = Admin::create([
                 'name_admin'     => $data['name_admin'],

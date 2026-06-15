@@ -104,7 +104,7 @@ class SyncGitHubRepositoryJob implements ShouldQueue
     {
         $response = Http::withToken($token)
             ->withHeaders(['Accept' => 'application/vnd.github+json'])
-            ->get("{$baseUrl}/repos/{$owner}/{$repo}/contributors", [
+            ->get(sprintf('%s/repos/%s/%s/contributors', $baseUrl, rawurlencode($owner), rawurlencode($repo)), [
                 'per_page' => 15,
                 'page'     => 1,
                 'anon'     => false,
@@ -129,7 +129,7 @@ class SyncGitHubRepositoryJob implements ShouldQueue
         foreach ($usernames as $username) {
             $response = Http::withToken($token)
                 ->withHeaders(['Accept' => 'application/vnd.github+json'])
-                ->get("{$baseUrl}/users/{$username}");
+                ->get(sprintf('%s/users/%s', $baseUrl, rawurlencode($username)));
 
             if ($response->ok()) {
                 $profiles[$username] = $response->json();

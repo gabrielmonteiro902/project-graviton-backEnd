@@ -11,11 +11,12 @@ class Tenant extends Model
 
     protected $keyType = 'string';
 
+    // 'plan' fora do $fillable de propósito: não pode ser mass-assigned via request.
+    // É definido server-side (forceFill no registro / fluxo de billing).
     protected $fillable = [
         'id',
         'name',
         'email',
-        'plan',
     ];
 
     public function admins(): HasMany

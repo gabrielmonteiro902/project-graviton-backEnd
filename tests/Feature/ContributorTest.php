@@ -63,8 +63,9 @@ class ContributorTest extends TestCase
         $response = $this->withToken($token)->getJson('/api/v1/contributors?hireable=true');
 
         $response->assertStatus(200);
+        // /contributors pagina os resultados; os itens ficam em data
         $data = $response->json();
-        $this->assertCount(1, $data);
-        $this->assertEquals('hireable-dev', $data[0]['username']);
+        $this->assertCount(1, $data['data']);
+        $this->assertEquals('hireable-dev', $data['data'][0]['username']);
     }
 }

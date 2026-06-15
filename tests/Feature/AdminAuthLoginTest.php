@@ -39,7 +39,11 @@ class AdminAuthLoginTest extends TestCase
             ]);
 
         $response->assertStatus(200)
-            ->assertJsonStructure(['token', 'expires_in']);
+            ->assertJsonStructure(['token_type', 'expires_in', 'tenant_id'])
+            ->assertCookie('graviton_token');
+
+        // O JWT vai no cookie HttpOnly, NUNCA no corpo da resposta.
+        $this->assertArrayNotHasKey('access_token', $response->json());
     }
 
     public function test_login_fails_with_wrong_password(): void

@@ -8,6 +8,7 @@ use App\Models\Repository;
 use Exception;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class RepositoryController extends Controller
 {
@@ -34,20 +35,52 @@ class RepositoryController extends Controller
             'github_url' => 'required|url',
         ]);
 
+        $parsed = parse_url($data['github_url']);
+        $host   = strtolower($parsed['host'] ?? '');
+
+        // SSRF guard: aceita SOMENTE github.com — nunca um host arbitrário/interno.
+        if (! in_array($host, ['github.com', 'www.github.com'], true)) {
+            return response()->json([
+                'error' => 'URL inválida. Use uma URL do github.com: https://github.com/owner/repo',
+            ], 422);
+        }
+
+        $path  = trim($parsed['path'] ?? '', '/');
+        $parts = explode('/', $path);
+
+        if (count($parts) < 2 || $parts[0] === '' || $parts[1] === '') {
+            return response()->json([
+                'error' => 'URL inválida. Use o formato: https://github.com/owner/repo',
+            ], 422);
+        }
+
+        $owner = $parts[0];
+        $repo  = preg_replace('/\.git$/', '', $parts[1]);
+
+        // Charset real de owner/repo do GitHub — bloqueia '..', '/', '@', '%' etc.
+        if (! preg_match('/^[A-Za-z0-9-]+$/', $owner) || ! preg_match('/^[A-Za-z0-9._-]+$/', $repo)) {
+            return response()->json([
+                'error' => 'Owner ou repositório contém caracteres inválidos.',
+            ], 422);
+        }
+
+        // Evita duplicar (e o 500 que viria do unique constraint): retorna 409 limpo.
+        $alreadyExists = Repository::where('tenant_id', $this->tenantId())
+            ->where('github_owner', $owner)
+            ->where('github_repo', $repo)
+            ->exists();
+
+        if ($alreadyExists) {
+            return response()->json([
+                'error' => 'Este repositório já foi adicionado.',
+            ], 409);
+        }
+
         try {
-            $path = trim(parse_url($data['github_url'], PHP_URL_PATH), '/');
-            $parts = explode('/', $path);
-
-            if (count($parts) < 2 || empty($parts[0]) || empty($parts[1])) {
-                return response()->json([
-                    'error' => 'URL inválida. Use o formato: https://github.com/owner/repo',
-                ], 422);
-            }
-
             $repository = Repository::create([
                 'tenant_id'    => $this->tenantId(),
-                'github_owner' => $parts[0],
-                'github_repo'  => $parts[1],
+                'github_owner' => $owner,
+                'github_repo'  => $repo,
                 'status'       => 'syncing',
             ]);
 
@@ -59,8 +92,11 @@ class RepositoryController extends Controller
             ], 201);
 
         } catch (Exception $e) {
+            // Não vaza detalhes internos na resposta — só loga.
+            Log::error('Falha ao registrar repositório', ['error' => $e->getMessage()]);
+
             return response()->json([
-                'error' => 'Falha ao processar solicitação: ' . $e->getMessage(),
+                'error' => 'Falha ao processar solicitação. Tente novamente.',
             ], 500);
         }
     }

@@ -37,7 +37,7 @@ Route::prefix('v1')->group(function () {
     // -------------------------------------------------------------------------
     // Rotas protegidas por JWT
     // -------------------------------------------------------------------------
-    Route::middleware('auth.jwt')->group(function () {
+    Route::middleware(['auth.jwt', 'throttle:120,1'])->group(function () {
         Route::post('logout', [AdminAuthController::class, 'logout']);
         Route::post('refresh', [AdminAuthController::class, 'refresh']);
         Route::get('me', [AdminAuthController::class, 'me']);
@@ -45,8 +45,9 @@ Route::prefix('v1')->group(function () {
         // CRUD de admins (escopo automático por tenant via tenant_id no JWT)
         Route::apiResource('admins', AdminController::class);
 
-        // GitHub Org-Sync
-        Route::apiResource('repositories', RepositoryController::class);
+        // GitHub Org-Sync — a criação dispara job externo: throttle dedicado mais agressivo
+        Route::apiResource('repositories', RepositoryController::class)->except(['store']);
+        Route::post('repositories', [RepositoryController::class, 'store'])->middleware('throttle:15,1');
         Route::delete('repositories', [RepositoryController::class, 'destroyBulk']);
         Route::apiResource('contributors', ContributorController::class);
 

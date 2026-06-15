@@ -17,3 +17,4 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="JWT_SECRET" value="test-secret-key-for-testing-only-32chars"/>
     </php>
+</phpunit>
